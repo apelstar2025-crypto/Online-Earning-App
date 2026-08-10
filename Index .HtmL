@@ -1,0 +1,876 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>অনলাইন Earning App</title>
+
+  <!-- Tailwind CSS & Lucide Icons -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <script src="https://unpkg.com/lucide@latest"></script>
+
+  <!-- Monetag Ad Network SDK Placement -->
+  <script src='//libtl.com/sdk.js' data-zone='11508347' data-sdk='show_11508347'></script>
+
+  <style>
+    body { 
+      font-family: 'Plus Jakarta Sans', sans-serif; 
+      background-color: #0d0f12; 
+      color: #ffffff; 
+    }
+    .glass-card {
+      background: rgba(26, 29, 36, 0.8);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 255, 255, 0.05);
+    }
+    .gradient-accent {
+      background: linear-gradient(135deg, #ff8c00 0%, #ff5500 100%);
+    }
+    .text-accent { color: #ff8c00; }
+    .btn-action {
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .btn-action:active { transform: scale(0.96); }
+    .main-page, .sub-page { display: none; }
+    .main-page.active, .sub-page.active { display: block; animation: fadeIn 0.3s ease-out forwards; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
+    .nav-link.active { color: #ff8c00; border-top: 2px solid #ff8c00; }
+
+    /* চলমান টেক্সট অ্যানিমেশন */
+    .marquee-container {
+      overflow: hidden;
+      white-space: nowrap;
+      position: relative;
+    }
+    .marquee-text {
+      display: inline-block;
+      padding-left: 100%;
+      animation: marquee 12s linear infinite;
+    }
+    @keyframes marquee {
+      0% { transform: translate(0, 0); }
+      100% { transform: translate(-100%, 0); }
+    }
+  </style>
+</head>
+
+<body class="max-w-md mx-auto min-h-screen flex flex-col justify-between relative bg-[#0d0f12]">
+
+  <!-- Loader Overlay -->
+  <div id="loader" class="hidden fixed inset-0 bg-black/80 flex flex-col items-center justify-center z-50">
+    <div class="animate-spin rounded-full h-12 w-12 border-4 border-orange-500 border-t-transparent mb-3"></div>
+    <p class="text-sm font-medium text-gray-300">প্রসেসিং হচ্ছে, অপেক্ষা করুন...</p>
+  </div>
+
+  <!-- Countdown Timer Modal -->
+  <div id="timer-modal" class="hidden fixed inset-0 bg-black/90 flex items-center justify-center z-50 p-6">
+    <div class="glass-card rounded-2xl p-6 w-full max-w-xs text-center border border-orange-500/20">
+      <h3 class="text-lg font-bold text-accent mb-2">টাস্ক চলমান রয়েছে</h3>
+      <div class="text-5xl font-extrabold my-4 text-white" id="countdown-display">0</div>
+      <p class="text-gray-400 text-xs">অনুগ্রহ করে নির্ধারিত সময় পর্যন্ত অপেক্ষা করুন। ব্যাক করবেন না।</p>
+    </div>
+  </div>
+
+  <!-- Account / Device Blocked Warning Modal -->
+  <div id="blocked-screen" class="hidden fixed inset-0 bg-red-950/95 flex items-center justify-center z-50 p-6 text-center">
+    <div class="glass-card border-2 border-red-600 p-6 rounded-2xl">
+      <i data-lucide="shield-alert" class="w-16 h-16 text-red-500 mx-auto mb-3"></i>
+      <h2 class="text-xl font-bold text-red-500 mb-2">অ্যাকাউন্ট ব্লক করা হয়েছে!</h2>
+      <p class="text-sm text-gray-300 mb-4" id="block-reason-msg">আপনার অ্যাকাউন্টটি সাময়িকভাবে বন্ধ বা ব্লক করা হয়েছে। বিস্তারিত জানতে অ্যাডমিন সাপোর্টে যোগাযোগ করুন।</p>
+    </div>
+  </div>
+
+  <!-- Authentication Page -->
+  <div id="auth-section" class="p-6 flex-col justify-center min-h-screen main-page">
+    <div class="text-center my-8">
+      <div class="w-16 h-16 gradient-accent rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg shadow-orange-500/20">
+        <i data-lucide="zap" class="w-10 h-10 text-black"></i>
+      </div>
+      <h1 class="text-2xl font-bold text-white">অনলাইন Earning App</h1>
+      <p class="text-xs text-gray-400 mt-1">লগইন বা রেজিস্ট্রেশন করে কাজ শুরু করুন</p>
+    </div>
+
+    <div class="glass-card p-6 rounded-2xl">
+      <!-- Login View -->
+      <div id="login-view">
+        <h2 class="text-lg font-semibold mb-4">অ্যাকাউন্ট লগইন</h2>
+        <input id="login-email" type="text" placeholder="ইমেইল অথবা মোবাইল নম্বর" class="w-full p-3.5 rounded-xl bg-gray-900 border border-gray-800 text-sm mb-3 focus:outline-none focus:border-orange-500">
+        <input id="login-password" type="password" placeholder="পাসওয়ার্ড" class="w-full p-3.5 rounded-xl bg-gray-900 border border-gray-800 text-sm mb-4 focus:outline-none focus:border-orange-500">
+        <button id="login-btn" class="w-full py-3.5 rounded-xl gradient-accent font-bold text-black text-sm btn-action mb-4">লগইন করুন</button>
+        <p class="text-center text-xs text-gray-400">নতুন অ্যাকাউন্ট তৈরি করবেন? <a href="#" id="show-signup" class="text-accent font-semibold">সাইন আপ</a></p>
+      </div>
+
+      <!-- Signup View -->
+      <div id="signup-view" class="hidden">
+        <h2 class="text-lg font-semibold mb-4">নতুন অ্যাকাউন্ট তৈরি</h2>
+        <input id="signup-name" type="text" placeholder="সম্পূর্ণ নাম" class="w-full p-3.5 rounded-xl bg-gray-900 border border-gray-800 text-sm mb-3 focus:outline-none focus:border-orange-500">
+        <input id="signup-email" type="text" placeholder="ইমেইল অথবা মোবাইল নম্বর" class="w-full p-3.5 rounded-xl bg-gray-900 border border-gray-800 text-sm mb-3 focus:outline-none focus:border-orange-500">
+        <input id="signup-password" type="password" placeholder="পাসওয়ার্ড" class="w-full p-3.5 rounded-xl bg-gray-900 border border-gray-800 text-sm mb-3 focus:outline-none focus:border-orange-500">
+        <input id="signup-referred-by" type="text" placeholder="রেফারেল কোড (ঐচ্ছিক)" class="w-full p-3.5 rounded-xl bg-gray-900 border border-gray-800 text-sm mb-4 focus:outline-none focus:border-orange-500">
+        <button id="signup-btn" class="w-full py-3.5 rounded-xl gradient-accent font-bold text-black text-sm btn-action mb-4">সাইন আপ করুন</button>
+        <p class="text-center text-xs text-gray-400">ইতিমধ্যে অ্যাকাউন্ট আছে? <a href="#" id="show-login" class="text-accent font-semibold">লগইন</a></p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Main App Container -->
+  <div id="app-container" class="min-h-screen flex flex-col justify-between main-page">
+    <header class="flex items-center justify-between p-4 sticky top-0 bg-[#0d0f12]/90 backdrop-blur-md z-10 border-b border-gray-800/50">
+      <div class="flex items-center space-x-2">
+        <div class="w-8 h-8 gradient-accent rounded-lg flex items-center justify-center">
+          <i data-lucide="zap" class="w-5 h-5 text-black"></i>
+        </div>
+        <h1 class="text-md font-bold tracking-wide">অনলাইন Earning App</h1>
+      </div>
+      <i data-lucide="user" class="w-6 h-6 text-gray-400 cursor-pointer" onclick="navigateTo('profile-page')"></i>
+    </header>
+
+    <main class="flex-grow pb-20">
+      <!-- Home Page -->
+      <div id="home-page" class="p-4 space-y-5 sub-page">
+        
+        <!-- Live Admin Notification Box -->
+        <div id="latest-notification-box" class="hidden glass-card p-3 rounded-xl border border-orange-500/40 flex items-start space-x-3 bg-orange-500/5">
+          <i data-lucide="bell" class="w-5 h-5 text-orange-400 flex-shrink-0 mt-0.5"></i>
+          <div>
+            <h4 id="notif-title" class="text-xs font-bold text-orange-400"></h4>
+            <p id="notif-body" class="text-[11px] text-gray-300 mt-0.5"></p>
+          </div>
+        </div>
+
+        <!-- Floating Scrolling Text above Balance Card -->
+        <div class="marquee-container bg-orange-500/10 border border-orange-500/30 rounded-xl py-2 px-3">
+          <div class="marquee-text text-xs font-semibold text-orange-400">
+            👍আপনি অবশ্যই ১০০% ইনকাম ও উত্তোলন করতে পারবেন🫶
+          </div>
+        </div>
+
+        <!-- Balance Card -->
+        <div class="glass-card p-5 rounded-2xl flex items-center justify-between border-l-4 border-orange-500">
+          <div>
+            <p class="text-xs text-gray-400 font-medium">আপনার বর্তমান ব্যালেন্স</p>
+            <p class="text-3xl font-extrabold mt-1"><span id="coin-balance">0</span> <span class="text-sm font-medium text-orange-400">Coins</span></p>
+          </div>
+          <button onclick="navigateTo('wallet-page')" class="gradient-accent text-black font-bold px-5 py-2.5 rounded-xl text-xs btn-action shadow-md">উইথড্র</button>
+        </div>
+
+        <!-- Daily Tasks Section -->
+        <section class="space-y-3">
+          <div class="flex justify-between items-center px-1">
+            <h2 class="text-sm font-bold text-gray-200 uppercase tracking-wider">দৈনিক কাজসমূহ</h2>
+            <span class="text-xs text-gray-400">আজকের অবশিষ্ট টাস্ক: <span id="ads-left-count" class="text-orange-400 font-bold">15</span></span>
+          </div>
+
+          <!-- Website Visits -->
+          <div class="glass-card p-3.5 rounded-xl flex items-center justify-between">
+            <div class="flex items-center space-x-3">
+              <div class="p-2.5 bg-blue-500/10 text-blue-400 rounded-lg"><i data-lucide="globe" class="w-5 h-5"></i></div>
+              <div>
+                <h3 class="text-xs font-semibold">ওয়েবসাইট ভিজিট ১</h3>
+                <p class="text-[10px] text-gray-400">২০ সেকেন্ড অপেক্ষা করুন (+৫০ কয়েন)</p>
+              </div>
+            </div>
+            <button class="bg-blue-600 hover:bg-blue-500 text-white text-xs px-4 py-2 rounded-lg font-semibold btn-action" onclick="visitWebsite('https://nasima00.blogspot.com/2026/06/blog-post.html?m=1', 20, 50)">ভিজিট</button>
+          </div>
+
+          <div class="glass-card p-3.5 rounded-xl flex items-center justify-between">
+            <div class="flex items-center space-x-3">
+              <div class="p-2.5 bg-blue-500/10 text-blue-400 rounded-lg"><i data-lucide="globe" class="w-5 h-5"></i></div>
+              <div>
+                <h3 class="text-xs font-semibold">ওয়েবসাইট ভিজিট ২</h3>
+                <p class="text-[10px] text-gray-400">২০ সেকেন্ড অপেক্ষা করুন (+৫০ কয়েন)</p>
+              </div>
+            </div>
+            <button class="bg-blue-600 hover:bg-blue-500 text-white text-xs px-4 py-2 rounded-lg font-semibold btn-action" onclick="visitWebsite('https://bdnewsbd111.blogspot.com/2026/05/bbb-new.html', 20, 50)">ভিজিট</button>
+          </div>
+
+          <div class="glass-card p-3.5 rounded-xl flex items-center justify-between">
+            <div class="flex items-center space-x-3">
+              <div class="p-2.5 bg-blue-500/10 text-blue-400 rounded-lg"><i data-lucide="globe" class="w-5 h-5"></i></div>
+              <div>
+                <h3 class="text-xs font-semibold">ওয়েবসাইট ভিজিট ৩</h3>
+                <p class="text-[10px] text-gray-400">২০ সেকেন্ড অপেক্ষা করুন (+৫০ কয়েন)</p>
+              </div>
+            </div>
+            <button class="bg-blue-600 hover:bg-blue-500 text-white text-xs px-4 py-2 rounded-lg font-semibold btn-action" onclick="visitWebsite('https://savar20250.blogspot.com/2026/06/blog-post.html?m=1#more', 20, 50)">ভিজিট</button>
+          </div>
+
+          <!-- Direct Links Section -->
+          <div class="glass-card p-3.5 rounded-xl flex items-center justify-between border border-orange-500/20">
+            <div class="flex items-center space-x-3">
+              <div class="p-2.5 bg-orange-500/10 text-orange-400 rounded-lg"><i data-lucide="external-link" class="w-5 h-5"></i></div>
+              <div>
+                <h3 class="text-xs font-semibold">ডাইরেক্ট লিঙ্ক (অফার)</h3>
+                <p class="text-[10px] text-gray-400">১৫ সেকেন্ড দেখুন (+৪০ কয়েন)</p>
+              </div>
+            </div>
+            <button class="gradient-accent text-black text-xs px-4 py-2 rounded-lg font-bold btn-action" onclick="visitDirectLink('https://omg10.com/4/10878375', 15, 40)">ওপেন</button>
+          </div>
+
+          <!-- Special Task Section (10 Dynamic Links) -->
+          <div class="glass-card p-4 rounded-xl space-y-3">
+            <div class="flex justify-between items-center">
+              <div>
+                <h3 class="text-xs font-bold text-orange-400 uppercase">স্পেশাল টাস্ক হাব (১০টি লিঙ্ক)</h3>
+                <p class="text-[10px] text-gray-400">প্রতিটি লিঙ্ক সম্পূর্ণ করে রিওয়ার্ড নিন</p>
+              </div>
+              <i data-lucide="layers" class="w-5 h-5 text-orange-400"></i>
+            </div>
+            
+            <div id="special-tasks-list" class="grid grid-cols-2 gap-2 pt-2">
+              <!-- Dynamically populated 10 task links -->
+            </div>
+          </div>
+        </section>
+      </div>
+
+      <!-- Wallet Page -->
+      <div id="wallet-page" class="p-4 space-y-5 sub-page">
+        <h2 class="text-md font-bold text-center">উইথড্র ও রিচার্জ সেন্টার</h2>
+        
+        <div class="glass-card p-5 rounded-2xl">
+          <p class="text-xs text-gray-400 mb-1">উইথড্র যোগ্য ব্যালেন্স</p>
+          <p class="text-3xl font-bold text-orange-400 mb-4"><span id="wallet-coin-balance">0</span> Coins</p>
+
+          <!-- Warning Notice for Referral Condition -->
+          <div class="p-3 bg-red-500/10 border border-red-500/30 rounded-xl text-xs text-red-400 mb-4 font-medium leading-relaxed">
+            ⚠️ <b>উইথড্র করার নিয়ম:</b> অবশ্যই অবশ্যই ২ জন ব্যক্তিকে রেফার করতে হবে। রেফারকৃত ব্যক্তিরা অবশ্যই অন্তত ২০ টাকা করে আয় করলে আপনি টাকা উত্তোলন করতে পারবেন।
+          </div>
+          
+          <div class="p-3 bg-gray-900 rounded-xl text-xs space-y-1 mb-4 border border-gray-800">
+             <p class="text-gray-300">কয়েন রেট: <span id="rate-coins-display" class="font-bold text-orange-400">1000</span> Coins = <span id="rate-taka-display" class="font-bold text-green-400">৳10</span></p>
+             <p class="text-[10px] text-gray-400">আনুমানিক সমপরিমাণ: <span id="converted-taka-val" class="font-bold text-white">৳0</span></p>
+          </div>
+
+          <div class="space-y-3">
+            <input id="withdraw-amount" type="number" placeholder="কয়েন এর পরিমাণ দিন" class="w-full p-3.5 rounded-xl bg-gray-900 border border-gray-800 text-sm focus:outline-none focus:border-orange-500">
+            
+            <select id="withdraw-method" class="w-full p-3.5 rounded-xl bg-gray-900 border border-gray-800 text-sm focus:outline-none focus:border-orange-500">
+              <!-- Admin payment methods rendered here dynamically -->
+            </select>
+
+            <input id="payment-number" type="number" placeholder="অ্যাকাউন্ট/মোবাইল নম্বর" class="w-full p-3.5 rounded-xl bg-gray-900 border border-gray-800 text-sm focus:outline-none focus:border-orange-500">
+            
+            <button id="withdraw-btn" class="w-full py-3.5 rounded-xl gradient-accent font-bold text-black text-sm btn-action">রিকোয়েস্ট পাঠান</button>
+          </div>
+          
+          <p class="text-[11px] text-gray-400 mt-4 text-center">সর্বনিম্ন উইথড্র: <span id="min-withdraw-display" class="text-orange-400 font-semibold">5000 Coins</span></p>
+        </div>
+
+        <div>
+          <h3 class="text-xs font-semibold text-gray-400 mb-2">সাম্প্রতিক পেমেন্ট হিস্ট্রি</h3>
+          <div id="withdrawal-history-list" class="space-y-2"></div>
+        </div>
+      </div>
+
+      <!-- Refer Page -->
+      <div id="refer-page" class="p-4 space-y-5 sub-page">
+        <h2 class="text-md font-bold text-center">রেফার করুন ও আয় করুন</h2>
+        <div class="glass-card p-6 rounded-2xl text-center space-y-4">
+          <p class="text-xs text-gray-400">আপনার ইউনিক রেফারেল কোড</p>
+          <div class="bg-gray-900 p-4 rounded-xl flex items-center justify-between border border-orange-500/30">
+            <span id="referral-code" class="text-xl font-mono font-bold tracking-wider text-orange-400">LOADING...</span>
+            <button id="copy-code-btn" class="text-gray-400 hover:text-white"><i data-lucide="copy" class="w-5 h-5"></i></button>
+          </div>
+          <button id="share-btn" class="w-full py-3.5 rounded-xl gradient-accent font-bold text-black text-sm btn-action">বন্ধুদের সাথে শেয়ার করুন</button>
+        </div>
+      </div>
+
+      <!-- Profile Page -->
+      <div id="profile-page" class="p-4 space-y-5 sub-page text-center">
+        <div class="flex flex-col items-center my-4">
+          <div class="w-20 h-20 gradient-accent rounded-full flex items-center justify-center mb-3 shadow-lg shadow-orange-500/20">
+             <i data-lucide="user" class="w-10 h-10 text-black"></i>
+          </div>
+          <h2 id="profile-name" class="text-lg font-bold">User</h2>
+          <p id="profile-email" class="text-xs text-gray-400">user@email.com</p>
+        </div>
+
+        <div class="glass-card p-4 rounded-2xl text-left space-y-2">
+          <h3 class="text-xs font-bold text-orange-400 uppercase">ডিভাইস সিকিউরিটি</h3>
+          <p class="text-xs text-gray-400">রেজিস্টার্ড ডিভাইস আইডি:</p>
+          <p id="current-device-info" class="text-[11px] font-mono p-2 bg-gray-900 rounded-lg text-gray-300 break-all"></p>
+          <p class="text-[10px] text-red-400 mt-1">* সতর্কতা: এক ডিভাইসে একাধিক অ্যাকাউন্ট তৈরি সম্পূর্ণ নিষিদ্ধ।</p>
+        </div>
+
+        <button id="logout-btn" class="w-full py-3.5 rounded-xl bg-red-600/20 border border-red-600/50 text-red-400 font-bold text-sm btn-action">লগআউট</button>
+      </div>
+    </main>
+
+    <!-- Bottom Navigation Bar -->
+    <nav class="fixed bottom-0 left-0 right-0 max-w-md mx-auto grid grid-cols-4 items-center text-center py-2 bg-[#0d0f12]/95 backdrop-blur-lg border-t border-gray-800/80 z-20">
+      <a href="#" class="nav-link p-2 text-gray-400 active" data-page="home-page">
+        <i data-lucide="home" class="mx-auto w-5 h-5"></i>
+        <span class="text-[10px] block mt-1">হোম</span>
+      </a>
+      <a href="#" class="nav-link p-2 text-gray-400" data-page="wallet-page">
+        <i data-lucide="wallet" class="mx-auto w-5 h-5"></i>
+        <span class="text-[10px] block mt-1">ওয়ালেট</span>
+      </a>
+      <a href="#" class="nav-link p-2 text-gray-400" data-page="refer-page">
+        <i data-lucide="users" class="mx-auto w-5 h-5"></i>
+        <span class="text-[10px] block mt-1">রেফার</span>
+      </a>
+      <a href="#" class="nav-link p-2 text-gray-400" data-page="profile-page">
+        <i data-lucide="user" class="mx-auto w-5 h-5"></i>
+        <span class="text-[10px] block mt-1">প্রোফাইল</span>
+      </a>
+    </nav>
+  </div>
+
+  <!-- Custom Alert Modal -->
+  <div id="custom-alert" class="hidden fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
+    <div class="glass-card rounded-2xl p-6 w-full max-w-xs text-center border border-orange-500/30">
+      <p id="alert-message" class="mb-5 text-xs text-gray-200 leading-relaxed"></p>
+      <button id="alert-ok-btn" class="gradient-accent text-black px-6 py-2 rounded-xl font-bold text-xs">ঠিক আছে</button>
+    </div>
+  </div>
+
+  <!-- Firebase & App Script Module -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
+    import { getAuth, onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, updateProfile } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js";
+    import { getFirestore, doc, setDoc, getDoc, updateDoc, collection, addDoc, serverTimestamp, query, where, getDocs, orderBy, limit, onSnapshot } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyCoBenI3hFfvmKba5-9mq9v8Rp8gzSg_3c",
+      authDomain: "online-earning-app-bd505.firebaseapp.com",
+      databaseURL: "https://online-earning-app-bd505-default-rtdb.firebaseio.com",
+      projectId: "online-earning-app-bd505",
+      storageBucket: "online-earning-app-bd505.firebasestorage.app",
+      messagingSenderId: "779902007021",
+      appId: "1:779902007021:web:1ccab9ee303741ab41bee4",
+      measurementId: "G-T6DGSNR5QK"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
+
+    let currentUser = null;
+    let userData = null;
+    let deviceId = null;
+
+    // Default App Configuration
+    let appConfig = { 
+      minWithdrawal: 5000, 
+      dailyAdLimit: 15,
+      coinValueCoins: 1000,
+      coinValueTaka: 10,
+      paymentMethods: ["bKash", "Nagad", "Rocket", "Recharge"]
+    };
+
+    // Helper to format Input into Valid Auth Format (Handles both Phone and Email)
+    function formatAuthInput(input) {
+      const cleanInput = input.trim();
+      if (/^[0-9]+$/.test(cleanInput)) {
+        return `${cleanInput}@app.com`;
+      }
+      return cleanInput;
+    }
+
+    // 10 Special Dynamic Links Configuration
+    const specialLinks = [
+      { id: 1, title: "টাস্ক লিঙ্ক ১", reward: 30, timer: 15, type: "monetag_sdk" },
+      { id: 2, title: "টাস্ক লিঙ্ক ২", reward: 30, timer: 15, type: "monetag_sdk" },
+      { id: 3, title: "টাস্ক লিঙ্ক ৩", reward: 30, timer: 15, type: "monetag_sdk" },
+      { id: 4, title: "টাস্ক লিঙ্ক ৪", reward: 30, timer: 15, type: "direct", url: "https://omg10.com/4/10878375" },
+      { id: 5, title: "টাস্ক লিঙ্ক ৫", reward: 30, timer: 15, type: "direct", url: "https://omg10.com/4/10716641" },
+      { id: 6, title: "টাস্ক লিঙ্ক ৬", reward: 30, timer: 15, type: "direct", url: "https://www.effectivecpmnetwork.com/i1077vbq5c?key=9d1087a00ebf587138d32663722afdc1" },
+      { id: 7, title: "টাস্ক লিঙ্ক ৭", reward: 30, timer: 15, type: "direct", url: "https://www.effectivecpmnetwork.com/tb4nb6r0?key=7f81e34cc45eba61d7b99c74e7f0e936" },
+      { id: 8, title: "টাস্ক লিঙ্ক ৮", reward: 30, timer: 15, type: "direct", url: "https://www.effectivecpmnetwork.com/ba4updrtgx?key=bb439d4703d7693da67a7d40781570ff" },
+      { id: 9, title: "টাস্ক লিঙ্ক ৯", reward: 30, timer: 15, type: "direct", url: "https://www.effectivecpmnetwork.com/wyvkunj15u?key=0b61e50c2f19ab4e7a2b5a1a395f7adb" },
+      { id: 10, title: "টাস্ক লিঙ্ক ১০", reward: 30, timer: 15, type: "direct", url: "https://www.effectivecpmnetwork.com/shhhgey506?key=09db523fafb070c5253d5e8de0503769" }
+    ];
+
+    // Device Fingerprint Generator
+    function getDeviceId() {
+      let id = localStorage.getItem('app_device_fingerprint');
+      if (!id) {
+        id = 'DEV_' + Math.random().toString(36).substring(2, 11).toUpperCase() + '_' + Date.now();
+        localStorage.setItem('app_device_fingerprint', id);
+      }
+      return id;
+    }
+
+    window.onload = async () => {
+      lucide.createIcons();
+      deviceId = getDeviceId();
+      setupUIEvents();
+      renderSpecialTasks();
+      listenToAdminSettings();
+      listenToNotifications();
+      onAuthStateChanged(auth, handleAuthState);
+    };
+
+    function showAlert(msg) {
+      document.getElementById('alert-message').textContent = msg;
+      document.getElementById('custom-alert').classList.remove('hidden');
+    }
+
+    document.getElementById('alert-ok-btn').onclick = () => {
+      document.getElementById('custom-alert').classList.add('hidden');
+    };
+
+    function showLoader(show) {
+      document.getElementById('loader').classList.toggle('hidden', !show);
+    }
+
+    // Dynamic Admin Settings Synchronization
+    function listenToAdminSettings() {
+      onSnapshot(doc(db, "config", "main"), (docSnap) => {
+        if (docSnap.exists()) {
+          const data = docSnap.data();
+          if (data.minWithdrawal !== undefined) appConfig.minWithdrawal = Number(data.minWithdrawal);
+          if (data.dailyAdLimit !== undefined) appConfig.dailyAdLimit = Number(data.dailyAdLimit);
+          if (data.coinValueCoins !== undefined) appConfig.coinValueCoins = Number(data.coinValueCoins);
+          if (data.coinValueTaka !== undefined) appConfig.coinValueTaka = Number(data.coinValueTaka);
+          if (data.paymentMethods && Array.isArray(data.paymentMethods) && data.paymentMethods.length > 0) {
+            appConfig.paymentMethods = data.paymentMethods;
+          }
+          updateAdminConfigUI();
+        }
+      });
+    }
+
+    function updateAdminConfigUI() {
+      document.getElementById('min-withdraw-display').textContent = `${appConfig.minWithdrawal} Coins`;
+      document.getElementById('rate-coins-display').textContent = appConfig.coinValueCoins;
+      document.getElementById('rate-taka-display').textContent = `৳${appConfig.coinValueTaka}`;
+      
+      const methodSelect = document.getElementById('withdraw-method');
+      methodSelect.innerHTML = appConfig.paymentMethods.map(m => `<option value="${m}">${m}</option>`).join('');
+      
+      if (userData) updateUI();
+    }
+
+    // Dynamic Admin Notifications Synchronization
+    function listenToNotifications() {
+      const q = query(collection(db, "notifications"), orderBy("createdAt", "desc"), limit(1));
+      onSnapshot(q, (snap) => {
+        if (!snap.empty) {
+          const notif = snap.docs[0].data();
+          document.getElementById('notif-title').textContent = notif.title;
+          document.getElementById('notif-body').textContent = notif.message;
+          document.getElementById('latest-notification-box').classList.remove('hidden');
+        }
+      });
+    }
+
+    function renderSpecialTasks() {
+      const container = document.getElementById('special-tasks-list');
+      container.innerHTML = specialLinks.map(task => `
+        <button onclick="handleTaskClick(${task.id})" class="p-2.5 bg-gray-900 border border-gray-800 hover:border-orange-500/50 rounded-xl text-left btn-action flex items-center justify-between">
+          <div>
+            <p class="text-[11px] font-semibold text-gray-200">${task.title}</p>
+            <p class="text-[9px] text-gray-400">+${task.reward} Coins</p>
+          </div>
+          <i data-lucide="chevron-right" class="w-4 h-4 text-orange-400"></i>
+        </button>
+      `).join('');
+      lucide.createIcons();
+    }
+
+    // Global Task Handler function
+    window.handleTaskClick = (id) => {
+      const task = specialLinks.find(t => t.id === id);
+      if (!task) return;
+
+      if (task.type === "monetag_sdk") {
+        if (typeof show_11508347 === 'function') {
+          show_11508347().then(() => {
+            executeTask(null, task.timer, task.reward);
+          }).catch(() => {
+            executeTask(null, task.timer, task.reward);
+          });
+        } else {
+          executeTask(null, task.timer, task.reward);
+        }
+      } else {
+        executeTask(task.url, task.timer, task.reward);
+      }
+    };
+
+    // Device & Account Integrity Validation
+    async function verifyDeviceAndAccountIntegrity(user) {
+      const q = query(collection(db, "users"), where("deviceId", "==", deviceId));
+      const snap = await getDocs(q);
+      
+      if (!snap.empty) {
+        let isOwnUser = false;
+        snap.forEach(d => {
+          if (d.data().uid === user.uid) isOwnUser = true;
+        });
+        
+        if (!isOwnUser) {
+          document.getElementById('block-reason-msg').textContent = "একই ডিভাইসে একাধিক অ্যাকাউন্ট তৈরি করা সম্পূর্ণ নিষিদ্ধ!";
+          document.getElementById('blocked-screen').classList.remove('hidden');
+          await signOut(auth);
+          return false;
+        }
+      }
+
+      onSnapshot(doc(db, "users", user.uid), (docSnap) => {
+        if (docSnap.exists()) {
+          const data = docSnap.data();
+          if (data.isBlocked) {
+            document.getElementById('block-reason-msg').textContent = "আপনার অ্যাকাউন্টটি অ্যাডমিন দ্বারা ব্লক করা হয়েছে।";
+            document.getElementById('blocked-screen').classList.remove('hidden');
+            signOut(auth);
+          } else {
+            userData = data;
+            updateUI();
+          }
+        }
+      });
+
+      return true;
+    }
+
+    async function handleAuthState(user) {
+      if (user) {
+        currentUser = user;
+        showLoader(true);
+
+        const isValid = await verifyDeviceAndAccountIntegrity(user);
+        if (!isValid) {
+          showLoader(false);
+          return;
+        }
+
+        await fetchUserData();
+        updateUI();
+        showMainPage('app-container');
+        navigateTo('home-page');
+        showLoader(false);
+      } else {
+        showMainPage('auth-section');
+      }
+    }
+
+    async function fetchUserData() {
+      const ref = doc(db, "users", currentUser.uid);
+      const snap = await getDoc(ref);
+      
+      if (snap.exists()) {
+        userData = snap.data();
+      } else {
+        const refCode = Math.random().toString(36).substring(2, 8).toUpperCase();
+        userData = {
+          uid: currentUser.uid,
+          name: currentUser.displayName || "User",
+          email: currentUser.email,
+          balance: 50,
+          referralCode: refCode,
+          dailyCount: 0,
+          lastWatchDate: new Date().toISOString().split('T')[0],
+          deviceId: deviceId,
+          isBlocked: false
+        };
+        await setDoc(ref, userData);
+      }
+    }
+
+    function updateUI() {
+      if (!userData) return;
+      document.getElementById('coin-balance').textContent = userData.balance;
+      document.getElementById('wallet-coin-balance').textContent = userData.balance;
+      document.getElementById('profile-name').textContent = userData.name || userData.displayName || "User";
+      
+      const displayAccount = userData.email ? userData.email.replace('@app.com', '') : "N/A";
+      document.getElementById('profile-email').textContent = displayAccount;
+      
+      document.getElementById('referral-code').textContent = userData.referralCode;
+      document.getElementById('current-device-info').textContent = deviceId;
+
+      const today = new Date().toISOString().split('T')[0];
+      const count = userData.lastWatchDate === today ? (userData.dailyCount || 0) : 0;
+      const leftCount = Math.max(0, appConfig.dailyAdLimit - count);
+      document.getElementById('ads-left-count').textContent = leftCount;
+
+      calculateTakaConversion();
+    }
+
+    function calculateTakaConversion() {
+      const inputAmount = parseInt(document.getElementById('withdraw-amount').value) || userData?.balance || 0;
+      const taka = (inputAmount / (appConfig.coinValueCoins || 1000)) * (appConfig.coinValueTaka || 10);
+      document.getElementById('converted-taka-val').textContent = `৳${taka.toFixed(2)}`;
+    }
+
+    function navigateTo(pageId) {
+      document.querySelectorAll(".sub-page").forEach(p => p.classList.remove("active"));
+      document.getElementById(pageId).classList.add("active");
+      document.querySelectorAll(".nav-link").forEach(link => {
+        link.classList.remove("active");
+        if (link.dataset.page === pageId) link.classList.add("active");
+      });
+      if(pageId === 'wallet-page') loadWithdrawalHistory();
+    }
+
+    function showMainPage(pageId) {
+      document.querySelectorAll(".main-page").forEach(p => p.classList.remove("active"));
+      document.getElementById(pageId).classList.add("active");
+    }
+
+    // Task & Reward Actions
+    window.visitWebsite = (url, seconds, reward) => executeTask(url, seconds, reward);
+    window.visitDirectLink = (url, seconds, reward) => executeTask(url, seconds, reward);
+
+    async function executeTask(url, seconds, reward) {
+      const today = new Date().toISOString().split('T')[0];
+      const count = userData.lastWatchDate === today ? (userData.dailyCount || 0) : 0;
+      
+      if (count >= appConfig.dailyAdLimit) {
+        return showAlert(`আজকের জন্য আপনার দৈনিক টাস্ক লিমিট (${appConfig.dailyAdLimit}) শেষ হয়ে গেছে!`);
+      }
+
+      if (userData.deviceId !== deviceId) {
+        return showAlert("শুধুমাত্র রেজিস্টার্ড ডিভাইস থেকেই কাজ সম্পন্ন করা যাবে।");
+      }
+
+      if (url && url.startsWith("http")) {
+        window.open(url, '_blank');
+      }
+
+      const modal = document.getElementById('timer-modal');
+      const timerDisplay = document.getElementById('countdown-display');
+      modal.classList.remove('hidden');
+
+      let left = seconds;
+      timerDisplay.textContent = left;
+
+      const interval = setInterval(async () => {
+        left--;
+        timerDisplay.textContent = left;
+        if (left <= 0) {
+          clearInterval(interval);
+          modal.classList.add('hidden');
+          await addRewardCoins(reward);
+        }
+      }, 1000);
+    }
+
+    async function addRewardCoins(reward) {
+      const today = new Date().toISOString().split('T')[0];
+      const userRef = doc(db, "users", currentUser.uid);
+
+      let newCount = userData.lastWatchDate === today ? (userData.dailyCount || 0) + 1 : 1;
+      let newBalance = (userData.balance || 0) + reward;
+
+      await updateDoc(userRef, {
+        balance: newBalance,
+        dailyCount: newCount,
+        lastWatchDate: today
+      });
+
+      userData.balance = newBalance;
+      userData.dailyCount = newCount;
+      userData.lastWatchDate = today;
+
+      updateUI();
+      showAlert(`অভিনন্দন! আপনি ${reward} কয়েন বোনাস পেয়েছেন।`);
+    }
+
+    // User Authentication Operations
+    async function handleSignup() {
+      const name = document.getElementById('signup-name').value;
+      const rawInput = document.getElementById('signup-email').value;
+      const pass = document.getElementById('signup-password').value;
+      const refByCode = document.getElementById('signup-referred-by').value.trim().toUpperCase();
+
+      if (!name || !rawInput || !pass) return showAlert("সমস্ত তথ্য সঠিকভাবে পূরণ করুন।");
+
+      const formattedAuthInput = formatAuthInput(rawInput);
+
+      showLoader(true);
+      try {
+        const q = query(collection(db, "users"), where("deviceId", "==", deviceId));
+        const snap = await getDocs(q);
+        if (!snap.empty) {
+          showLoader(false);
+          return showAlert("সতর্কতা: এই ডিভাইস থেকে একটি অ্যাকাউন্ট ইতিমধ্যে তৈরি করা আছে!");
+        }
+
+        const res = await createUserWithEmailAndPassword(auth, formattedAuthInput, pass);
+        await updateProfile(res.user, { displayName: name });
+
+        const refCode = Math.random().toString(36).substring(2, 8).toUpperCase();
+        const newUserObj = {
+          uid: res.user.uid,
+          name: name,
+          email: res.user.email,
+          balance: 50,
+          referralCode: refCode,
+          referredBy: refByCode || null,
+          dailyCount: 0,
+          lastWatchDate: new Date().toISOString().split('T')[0],
+          deviceId: deviceId,
+          isBlocked: false
+        };
+        await setDoc(doc(db, "users", res.user.uid), newUserObj);
+      } catch (e) {
+        showAlert("সাইন আপ ব্যর্থ হয়েছে। " + e.message);
+      }
+      showLoader(false);
+    }
+
+    async function handleLogin() {
+      const rawInput = document.getElementById('login-email').value;
+      const pass = document.getElementById('login-password').value;
+
+      if (!rawInput || !pass) return showAlert("ইমেইল/মোবাইল নম্বর ও পাসওয়ার্ড দিন।");
+
+      const formattedAuthInput = formatAuthInput(rawInput);
+
+      showLoader(true);
+      try {
+        await signInWithEmailAndPassword(auth, formattedAuthInput, pass);
+      } catch (e) {
+        showAlert("ইমেইল/মোবাইল নম্বর অথবা পাসওয়ার্ড ভুল হয়েছে।");
+      }
+      showLoader(false);
+    }
+
+    // Withdrawal Request Integrated (Includes strict 2-Referral Verification)
+    async function handleWithdrawal() {
+      const amount = parseInt(document.getElementById('withdraw-amount').value);
+      const method = document.getElementById('withdraw-method').value;
+      const number = document.getElementById('payment-number').value;
+
+      if (!amount || amount < appConfig.minWithdrawal) {
+        return showAlert(`সর্বনিম্ন ${appConfig.minWithdrawal} কয়েন উইথড্র করতে পারবেন।`);
+      }
+      if (amount > userData.balance) return showAlert("আপনার অ্যাকাউন্টে পর্যাপ্ত কয়েন নেই।");
+      if (!number) return showAlert("পেমেন্ট নম্বর প্রদান করুন।");
+
+      showLoader(true);
+
+      try {
+        // Referral Validation Check
+        const refQuery = query(collection(db, "users"), where("referredBy", "==", userData.referralCode));
+        const refSnap = await getDocs(refQuery);
+
+        // Required 20 Taka = 2000 Coins threshold for each referee
+        const minCoinsPerReferral = 2000; 
+        let qualifiedReferralsCount = 0;
+
+        refSnap.forEach(refDoc => {
+          const refData = refDoc.data();
+          if ((refData.balance || 0) >= minCoinsPerReferral) {
+            qualifiedReferralsCount++;
+          }
+        });
+
+        if (qualifiedReferralsCount < 2) {
+          showLoader(false);
+          return showAlert("অবশ্যই অবশ্যই দুইজন ব্যক্তিকে রেফার করতে হবে এবং রেফারকৃত ব্যক্তিদের অন্তত ২০ টাকা করে আয় করতে হবে।");
+        }
+
+        // Proceed to record Withdrawal request
+        await addDoc(collection(db, "withdrawals"), {
+          userId: currentUser.uid,
+          userName: userData.name || userData.displayName || currentUser.email.split('@')[0],
+          amount: amount,
+          method: method,
+          paymentDetail: number,
+          number: number,
+          status: "pending",
+          requestedAt: serverTimestamp(),
+          createdAt: serverTimestamp(),
+          deviceId: deviceId
+        });
+
+        const newBal = userData.balance - amount;
+        await updateDoc(doc(db, "users", currentUser.uid), { balance: newBal });
+        userData.balance = newBal;
+        updateUI();
+        
+        document.getElementById('withdraw-amount').value = '';
+        document.getElementById('payment-number').value = '';
+        showAlert("উইথড্র রিকোয়েস্ট সফলভাবে পাঠানো হয়েছে!");
+        loadWithdrawalHistory();
+      } catch (e) { 
+        showAlert("উইথড্র প্রক্রিয়ায় সমস্যা হয়েছে: " + e.message); 
+      }
+      showLoader(false);
+    }
+
+    async function loadWithdrawalHistory() {
+      const list = document.getElementById('withdrawal-history-list');
+      list.innerHTML = "";
+      
+      try {
+        const q = query(
+          collection(db, "withdrawals"), 
+          where("userId", "==", currentUser.uid), 
+          orderBy("requestedAt", "desc"), 
+          limit(5)
+        );
+        const snap = await getDocs(q);
+        
+        if (snap.empty) {
+          list.innerHTML = `<p class="text-[11px] text-gray-500 text-center py-3">কোন সাম্প্রতিক হিস্ট্রি নেই</p>`;
+          return;
+        }
+
+        snap.forEach(d => {
+          const data = d.data();
+          const statusBg = data.status === 'pending' ? 'bg-yellow-500/10 text-yellow-500' : 
+                           data.status === 'approved' ? 'bg-green-500/10 text-green-500' : 'bg-red-500/10 text-red-500';
+          
+          list.innerHTML += `
+            <div class="glass-card p-3 rounded-xl flex justify-between items-center text-xs">
+              <div>
+                <p class="font-semibold text-gray-200">${data.amount} Coins (${data.method})</p>
+                <p class="text-[10px] text-gray-400">${data.paymentDetail || data.number}</p>
+              </div>
+              <span class="px-2 py-0.5 rounded text-[10px] font-bold ${statusBg}">${data.status}</span>
+            </div>`;
+        });
+      } catch(e) {
+        console.error("Error loading history:", e);
+      }
+    }
+
+    function setupUIEvents() {
+      document.getElementById('show-signup').onclick = () => {
+        document.getElementById('login-view').classList.add('hidden');
+        document.getElementById('signup-view').classList.remove('hidden');
+      };
+      document.getElementById('show-login').onclick = () => {
+        document.getElementById('signup-view').classList.add('hidden');
+        document.getElementById('login-view').classList.remove('hidden');
+      };
+
+      document.getElementById('signup-btn').onclick = handleSignup;
+      document.getElementById('login-btn').onclick = handleLogin;
+      document.getElementById('logout-btn').onclick = () => signOut(auth);
+      document.getElementById('withdraw-btn').onclick = handleWithdrawal;
+      
+      document.getElementById('withdraw-amount').oninput = calculateTakaConversion;
+
+      document.querySelectorAll('.nav-link').forEach(link => {
+        link.onclick = (e) => {
+          e.preventDefault();
+          navigateTo(link.dataset.page);
+        };
+      });
+
+      document.getElementById('copy-code-btn').onclick = () => {
+        navigator.clipboard.writeText(userData.referralCode);
+        showAlert("রেফারেল কোড কপি করা হয়েছে!");
+      };
+      
+      document.getElementById('share-btn').onclick = () => {
+        if (navigator.share) {
+          navigator.share({ title: 'অনলাইন Earning App', text: `আমার রেফারেল কোড ব্যবহার করে জয়েন করুন: ${userData.referralCode}` });
+        } else {
+          navigator.clipboard.writeText(userData.referralCode);
+          showAlert("রেফারেল লিঙ্ক কপি করা হয়েছে!");
+        }
+      };
+    }
+  </script>
+</body>
+</html>
